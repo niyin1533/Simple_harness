@@ -1,0 +1,13 @@
+.venv/
+.venv-yolo/
+node_modules/
+dist/
+__pycache__/
+.pytest_cache/
+*.pyc
+.env
+data/
+playwright-report/
+test-results/
+*.egg-info/
+*.tsbuildinfo
