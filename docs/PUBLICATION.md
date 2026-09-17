@@ -20,18 +20,17 @@ MCP 兼容显示由发布者授权，访客不能自行降低沙箱限制。已�
 ## 启动 / 升级
 
 ```powershell
-cd D:\nrts\agent
+# 在项目根目录执行，先在原终端停止旧服务
 .\.venv\Scripts\python.exe -m pip install -r backend\requirements.txt
-docker start agent-harness-db
+docker compose up -d --wait mysql redis
 .\.venv\Scripts\python.exe -m alembic -c backend\alembic.ini upgrade head
-docker compose up -d redis
 .\.venv\Scripts\python.exe scripts\dev.py
 ```
 
 现有进程需要在原终端 Ctrl+C 后重新启动 API、Worker 和前端；先确认没有正在运行的用户任务。关闭启动器可能同时结束它的推理子进程，重启后在“权重与部署”检查并按需启动。
 不要执行 `docker compose down -v`，它会删除数据卷。
 
-Redis 容器 `agent-harness-redis`，本机 `127.0.0.1:16379`，卷 `agent_redis-data`；不会连接 Fanwu 的 `fw-redis:6379`。
+Redis 容器 `agent-harness-redis`，本机 `127.0.0.1:16379`；Compose 卷名随项目名变化，使用 `docker volume ls` 查看。不依赖原项目服务。
 默认 `AGENT_REDIS_URL=redis://127.0.0.1:16379/0`，键前缀 `agent:publication:`。
 Redis 不可达时公开**新任务**返回 503，后台聊天、历史读取和已运行任务不依赖 Redis。
 

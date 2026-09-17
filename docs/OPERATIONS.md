@@ -13,7 +13,7 @@
 
 `data/master.key` 用于资源和 Embedding 密钥加密，丢失无法解密，应与数据库分开备份。`data/uploads` 按用户存文件，`data/deployments` 存配置、日志、输出。不要向 LLM 提供平台凭据。
 
-发布服务详见 [PUBLICATION.md](PUBLICATION.md)。数据库备份需包含 `published_*`、`app_*`、`publication_audit`；`master.key` 也用于 API Key 摘要和访客签名，恢复时必须配套。Redis 为独立 `agent_redis-data`，并发真实状态来自 MySQL，不能通过清空 Redis 绕过并发限制。
+发布服务详见 [PUBLICATION.md](PUBLICATION.md)。数据库备份需包含 `published_*`、`app_*`、`publication_audit`；`master.key` 也用于 API Key 摘要和访客签名，恢复时必须配套。Redis 使用 Compose 独立命名卷（实际名称随项目名变化），并发真实状态来自 MySQL，不能通过清空 Redis 绕过并发限制。
 
 暂停/取消不撤销已完成的文件操作或第三方调用。Worker 失去租约后不重放执行中的工具，标记 UNKNOWN / NEEDS_REVIEW；人工检查后取消旧任务并发起新任务。数据库备份不包括文件系统副作用。
 
@@ -45,14 +45,25 @@ MCP 支持 `command/args/env` 或 `transport: "streamable-http"`、`url/headers`
 
 ZIP 接受 `.codex-plugin/plugin.json`、`.claude-plugin/plugin.json` 或 `plugin.json`，以及 `.mcp.json` 和 `skills/*/SKILL.md`。限制 20MB、256 文件、单文件 2MB、解压合计 20MB；拒绝路径穿越、符号链接、可执行脚本。默认禁用，不执行钩子、不自动下载依赖。
 
-MCP Apps 只能读取已启用工具声明的 URI；显示票据 5 分钟有效，HTML 在无同源权限的子 iframe 中执行，CSP 不允许域名通配符。尚未支持直接工具调用、OAuth、同源存储等兼容模式。
+MCP Apps 只能读取已启用工具声明的 URI；显示票据 5 分钟有效，默认 HTML 在无同源权限的子 iframe 中执行，CSP 不允许域名通配符。可信 Cesium 地图支持独立显示 origin 内的同源存储与本地 Worker 兼容模式；公开应用须由发布者授权，访客不能自行开启。尚不支持页面直接调用业务工具、OAuth 或任意扩展的全量兼容。
 
 ## Linux 与生产
 
-Python API/Worker 可在同机 Linux 部署，通过 MySQL 协调，推理仍是本机进程。前端 `npm ci`、`npm run build` 后由反向代理提供 dist 和 /api；SSE 关闭代理缓冲。
+Python API/Worker 的 Linux 部署需另行验证，通过 MySQL 协调，推理仍是本机进程。前端 `npm ci`、`npm run build` 后由反向代理提供 dist，并转发 `/api`、`/public-api` 和 `/service-api`；公开页面提供 SPA 回退，SSE 关闭代理缓冲。Vite 开发服务器不是生产服务器。
 
 分别监督 API、Worker、UI host；设置真实 `AGENT_ORIGINS`、`AGENT_SECURE_COOKIE=true`、专用 `AGENT_APP_ORIGIN`。建议 UI 使用独立站点域、不共享业务 cookie 域。数据库仅向内网开放，修改开发密码。
 
 生产前仍需登录限流、完整审计/容量保留策略、备份恢复演练、真实供应商/GPU 验收。执行命令和权重的 OS 账户应低权限。允许不可信用户必须使用独立容器/虚拟机；命令白名单不是沙箱，不要让不可信脚本以能读取 master.key 的账户运行。
 
-迁移执行 `python -m alembic upgrade head`。迁移文件已冻结，破坏性 downgrade 被拒绝；回退需要已验证备份。
+迁移在 backend 目录用虚拟环境 Python 执行 `python -m alembic upgrade head`。迁移文件已冻结，破坏性 downgrade 被拒绝；回退需要已验证备份。
+
+## YOLO 独立环境
+
+在项目根目录执行（Windows）：
+
+```powershell
+.\.venv\Scripts\python.exe -m venv .venv-yolo
+.\.venv-yolo\Scripts\python.exe -m pip install -r tool-runtimes\requirements-yolo.txt
+```
+
+内置模板默认查找项目内 `.venv-yolo`；模板的 `python` 可指定其他解释器。GPU 依赖根据硬件另行安装，不与平台后端混装。

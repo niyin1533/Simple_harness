@@ -27,4 +27,4 @@ MCP Apps 由独立 origin 显示；默认 opaque iframe，显式确认后可用�
 
 `backend/vendor/cesium` 是从原项目已使用的 Cesium 1.129 静态发布包独立复制的第三方运行资源（保留 LICENSE.md），由显示服务挂载 `/Cesium`；运行时不读取 Fanwu 目录。
 
-运行方式与边界见 [README.md](README.md)、[plan.md](plan.md)、[docs/OPERATIONS.md](docs/OPERATIONS.md)。
+运行方式与边界见 [README.md](README.md)、[docs/PUBLICATION.md](docs/PUBLICATION.md)、[docs/OPERATIONS.md](docs/OPERATIONS.md)。
