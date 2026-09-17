@@ -6,6 +6,7 @@ import asyncio
 from alembic import context
 from app.db import Base, engine
 from app.config import settings
+from app import publication_models  # Register publication metadata for alembic check.
 
 
 def migrate(connection):

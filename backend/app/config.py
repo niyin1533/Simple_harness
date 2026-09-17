@@ -1,4 +1,4 @@
-"""@input Environment settings. @output Application configuration. @position Infrastructure.
+"""@input Environment settings. @output Application and isolated publication Redis configuration. @position Infrastructure.
 @doc-sync Update this header and folder INDEX.md when this file changes.
 """
 
@@ -22,6 +22,7 @@ class Settings(BaseSettings):
     command_allowlist: str = "git,python,python3,node,npm,npx,java,mvn"
     app_origin: str = "http://127.0.0.1:8011"
     session_hours: int = 24
+    redis_url: str = "redis://127.0.0.1:16379/0"
 
 
 settings = Settings()

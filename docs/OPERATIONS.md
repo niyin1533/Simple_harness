@@ -8,9 +8,12 @@
 | FastAPI | 8010 | 身份、资源、任务、SSE、附件 |
 | MCP UI host | 8011 | 无业务 API 的独立 origin 展示 |
 | MySQL | 13310 | 独立 agent_harness 数据库 |
+| Redis | 16379 | 独立公开应用准入限流；后台聊天不依赖 |
 | Worker | 无 | 数据库租约、串行执行、计划、推理部署 |
 
 `data/master.key` 用于资源和 Embedding 密钥加密，丢失无法解密，应与数据库分开备份。`data/uploads` 按用户存文件，`data/deployments` 存配置、日志、输出。不要向 LLM 提供平台凭据。
+
+发布服务详见 [PUBLICATION.md](PUBLICATION.md)。数据库备份需包含 `published_*`、`app_*`、`publication_audit`；`master.key` 也用于 API Key 摘要和访客签名，恢复时必须配套。Redis 为独立 `agent_redis-data`，并发真实状态来自 MySQL，不能通过清空 Redis 绕过并发限制。
 
 暂停/取消不撤销已完成的文件操作或第三方调用。Worker 失去租约后不重放执行中的工具，标记 UNKNOWN / NEEDS_REVIEW；人工检查后取消旧任务并发起新任务。数据库备份不包括文件系统副作用。
 

@@ -15,3 +15,5 @@
 | verify_sep16.py | Test | 真实统一记忆治理、后台地图任务及用户 YOLO 权重部署验收；仅清理测试记忆 |
 | verify_sep16_browser.mjs | Test | 真实地图票据的浏览器截图、画布与瓦片验收 |
 | verify_cleanup_ui.mjs | Test | 无损浏览器回归：弹窗宽度、加载反馈、删除按钮悬停/键盘/触屏及任务批量清理 |
+| verify_publication_ui.mjs | Test | 无损授权回显/全选、长期密钥、公开侧栏删除/隐私、桌面移动截图与可选真实地图嵌入验收 |
+| verify_publication_map.py | Test | 只读复用成功地图结果，读取真实 MCP HTML 并生成短期兼容票据；不改发布授权或版本 |

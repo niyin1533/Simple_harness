@@ -19,4 +19,5 @@
 | test_provider_protocols.py | Test | JSON 模式、Ollama/兼容向量协议、空候选与故障降级回归 |
 | test_memory_governance.py | Test | 稳定槽去重更新、用户隔离、治理重试/待审核与部署依赖预检 |
 | test_run_delete.py | Test | 任务删除归属/状态校验、批量原子性、关联记录清理与聊天保留 |
+| test_publication.py | Test | 发布授权回显、版本/准入/幂等/隔离、历史视图归属及兼容不可越权；测试任务不被在线 Worker 领取 |
 | test_migration_regressions.py | Test | 真实智能体创建/版本接口、待审批恢复、声明域 CSP 与显式兼容回归 |

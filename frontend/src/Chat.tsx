@@ -72,11 +72,16 @@ export function Chat() {
   const removeSession = async (id: string) => {
     try {
       await api("/sessions/" + id, "DELETE");
-      if (id === session) { setSession(undefined); setRun(undefined); }
+      if (id === session) {
+        setSession(undefined);
+        setRun(undefined);
+      }
       cache.removeQueries({ queryKey: ["messages", id] });
       await cache.invalidateQueries({ queryKey: ["sessions"] });
       message.success("对话已删除，任务记录仍保留");
-    } catch (e) { message.error(String(e)); }
+    } catch (e) {
+      message.error(String(e));
+    }
   };
   const send = async () => {
     if (!text.trim() || !target) return;
@@ -130,9 +135,18 @@ export function Chat() {
                 <small>{date(s.created)}</small>
               </div>
               <span onClick={(e) => e.stopPropagation()}>
-                <Popconfirm title="删除此对话？" description="对话删除后无法恢复，任务记录仍保留。" onConfirm={() => removeSession(s.id)}>
+                <Popconfirm
+                  title="删除此对话？"
+                  description="对话删除后无法恢复，任务记录仍保留。"
+                  onConfirm={() => removeSession(s.id)}
+                >
                   <Tooltip title="删除会话">
-                    <Button className="session-delete" type="text" icon={<DeleteOutlined />} aria-label={"删除对话：" + s.title} />
+                    <Button
+                      className="session-delete"
+                      type="text"
+                      icon={<DeleteOutlined />}
+                      aria-label={"删除对话：" + s.title}
+                    />
                   </Tooltip>
                 </Popconfirm>
               </span>
@@ -299,7 +313,8 @@ export function Tasks() {
   const { message } = App.useApp();
   const [checked, setChecked] = useState<React.Key[]>([]);
   const [deleting, setDeleting] = useState(false);
-  const removable = (r: Json) => ["SUCCEEDED", "FAILED", "CANCELLED", "BLOCKED"].includes(r.status);
+  const removable = (r: Json) =>
+    ["SUCCEEDED", "FAILED", "CANCELLED", "BLOCKED"].includes(r.status);
   const remove = async (ids: string[]) => {
     setDeleting(true);
     try {
@@ -308,8 +323,11 @@ export function Tasks() {
       if (selected && ids.includes(selected)) setSelected(undefined);
       await cache.invalidateQueries({ queryKey: ["runs"] });
       message.success("已删除 " + ids.length + " 条任务记录");
-    } catch (e) { message.error(String(e)); }
-    finally { setDeleting(false); }
+    } catch (e) {
+      message.error(String(e));
+    } finally {
+      setDeleting(false);
+    }
   };
   const [selected, setSelected] = useState<string>();
   const { data = [], isLoading } = useQuery<Json[]>({
@@ -328,8 +346,17 @@ export function Tasks() {
       </div>
       <Card>
         <Space className="spaced-bottom">
-          <Popconfirm title={"永久删除所选 " + checked.length + " 条任务及执行记录？聊天内容保留，无法撤销。"} onConfirm={() => remove(checked.map(String))}>
-            <Button danger disabled={!checked.length} loading={deleting}>批量删除{checked.length ? `（${checked.length}）` : ""}</Button>
+          <Popconfirm
+            title={
+              "永久删除所选 " +
+              checked.length +
+              " 条任务及执行记录？聊天内容保留，无法撤销。"
+            }
+            onConfirm={() => remove(checked.map(String))}
+          >
+            <Button danger disabled={!checked.length} loading={deleting}>
+              批量删除{checked.length ? `（${checked.length}）` : ""}
+            </Button>
           </Popconfirm>
           <span>仅可删除已结束任务；其他任务请先取消。</span>
         </Space>
@@ -337,10 +364,45 @@ export function Tasks() {
           rowKey="id"
           loading={isLoading}
           dataSource={data}
-          rowSelection={{ selectedRowKeys: checked, onChange: setChecked, getCheckboxProps: (r) => ({ disabled: !removable(r) || deleting }) }}
+          rowSelection={{
+            selectedRowKeys: checked,
+            onChange: setChecked,
+            getCheckboxProps: (r) => ({ disabled: !removable(r) || deleting }),
+          }}
           columns={[
             { title: "任务", dataIndex: "task", ellipsis: true },
             { title: "智能体", dataIndex: "agent_name" },
+            {
+              title: "来源",
+              dataIndex: "trigger",
+              filters: [
+                { text: "后台", value: "INTERACTIVE" },
+                { text: "定时任务", value: "SCHEDULED" },
+                { text: "公开 Web", value: "WEB_APP" },
+                { text: "Service API", value: "SERVICE_API" },
+              ],
+              onFilter: (v, r) => r.trigger === v,
+              render: (s) =>
+                (
+                  ({
+                    INTERACTIVE: "后台",
+                    SCHEDULED: "定时任务",
+                    WEB_APP: "公开 Web",
+                    SERVICE_API: "Service API",
+                  }) as Record<string, string>
+                )[s] || s,
+            },
+            {
+              title: "发布版本",
+              dataIndex: "published_version",
+              filters: [
+                ...new Set(
+                  data.map((r) => r.published_version).filter(Boolean),
+                ),
+              ].map((v) => ({ text: `v${v}`, value: v })),
+              onFilter: (v, r) => r.published_version === v,
+              render: (v) => (v ? `v${v}` : "—"),
+            },
             {
               title: "状态",
               dataIndex: "status",
@@ -364,8 +426,13 @@ export function Tasks() {
               render: (_, r) => (
                 <Space>
                   <Button onClick={() => setSelected(r.id)}>详情</Button>
-                  <Popconfirm title="永久删除此任务及执行记录？聊天内容保留，无法撤销。" onConfirm={() => remove([r.id])}>
-                    <Button danger disabled={!removable(r) || deleting}>删除</Button>
+                  <Popconfirm
+                    title="永久删除此任务及执行记录？聊天内容保留，无法撤销。"
+                    onConfirm={() => remove([r.id])}
+                  >
+                    <Button danger disabled={!removable(r) || deleting}>
+                      删除
+                    </Button>
                   </Popconfirm>
                 </Space>
               ),

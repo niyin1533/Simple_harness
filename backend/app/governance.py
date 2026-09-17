@@ -1,4 +1,4 @@
-"""@input Messages, memories, models and unified governance. @output Budgeted hybrid recall, manual memory and checkpoints.
+"""@input Principal-scoped memories, live credentials and frozen publication preferences. @output Budgeted recall, manual memory and checkpoints.
 @position Prompt governance. @doc-sync Update header and INDEX.md on changes.
 """
 
@@ -9,6 +9,7 @@ from .db import DB, Message, Checkpoint, Memory, Preference, now, public
 from .providers import complete, embedding
 from .memory_governance import govern, TYPES
 from .security import sanitize
+from .invocation import preferences
 
 
 def tokens(text):
@@ -104,7 +105,7 @@ async def history(db, session_id, model):
 
 
 async def retrieve(db, user_id, agent_id, task, scopes):
-    pref = await db.get(Preference, user_id)
+    pref = await preferences(db, user_id)
     config = pref.config if pref else {}
     rows = list(
         (
@@ -215,7 +216,7 @@ async def manage(db, user_id, agent_id, args):
 
 async def extract(user_id, agent_id, task, answer):
     async with DB.begin() as db:
-        pref = await db.get(Preference, user_id)
+        pref = await preferences(db, user_id)
         if not pref or not pref.config.get("auto_extract"):
             return
         return await govern(db, user_id, agent_id, task, explicit=False)

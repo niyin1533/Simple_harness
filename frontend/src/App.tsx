@@ -33,6 +33,7 @@ import { Chat, Tasks } from "./Chat";
 import { Agents } from "./Agents";
 import { Configuration } from "./Configuration";
 import { Memories, Schedules, Users } from "./Governance";
+import { PublishedApp } from "./Publication";
 export const UserContext = createContext({
   id: "",
   username: "",
@@ -40,6 +41,12 @@ export const UserContext = createContext({
 });
 export const useUser = () => useContext(UserContext);
 export default function App() {
+  const location = useLocation();
+  if (location.pathname.startsWith("/published/agents/"))
+    return <PublishedApp />;
+  return <ConsoleApp />;
+}
+function ConsoleApp() {
   const cache = useQueryClient();
   const [user, setUser] = useState<any>(null),
     [loading, setLoading] = useState(true),

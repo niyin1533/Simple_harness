@@ -1,4 +1,4 @@
-"""@input MySQL task leases and completed memory tool calls. @output Dispatch and non-duplicating asynchronous memory governance.
+"""@input MySQL leases, invocation principals and completed memory calls. @output Shared dispatch and principal-isolated asynchronous governance.
 @position Background worker. @doc-sync Update header and INDEX.md on changes.
 """
 
@@ -11,6 +11,7 @@ from .runtime import run_loop, create_run, event
 from .scheduling import next_time
 from .deployments import start, reconcile
 from .governance import extract
+from .invocation import acting_as
 
 log = logging.getLogger(__name__)
 
@@ -34,7 +35,8 @@ async def execute_run(id, owner):
             if explicit_call:
                 return
             try:
-                await extract(run.user_id, run.agent_id, run.task, run.result)
+                with acting_as((run.snapshot.get("publication") or {}).get("end_user_id"), run.snapshot.get("memory_policy")):
+                    await extract(run.user_id, run.agent_id, run.task, run.result)
             except Exception:
                 log.exception("Memory extraction failed for %s", id)
 

@@ -28,6 +28,7 @@ import {
 } from "@ant-design/icons";
 import { api, list, Resource } from "./api";
 import { useUser } from "./App";
+import { PublicationButton } from "./Publication";
 export function Agents() {
   const { data = [] } = useQuery({
     queryKey: ["agent"],
@@ -78,6 +79,7 @@ export function Agents() {
                 </Tag>
               </div>
               <h2>{agent.name}</h2>
+              {user.admin && <PublicationButton agent={agent} />}
               <p>{agent.description || "一个专注于完成任务的智能体"}</p>
               <div className="agent-meta">
                 <Tag>{agent.config.tool_ids?.length || 0} 个工具</Tag>

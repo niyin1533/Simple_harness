@@ -11,6 +11,7 @@
 - 私有记忆、可选 Embedding、自动提取、人工治理与上下文压缩。
 - 一次、每日、每周、每月和 Cron 计划任务。
 - MCP stdio / Streamable HTTP、安全 ZIP 声明投影、隔离 HTML 展示。
+- 单智能体不可变发布、独立 Web / Service API、外部记忆隔离、预授权和限流，见 [发布指南](docs/PUBLICATION.md)。
 
 ## 当前机器启动
 
@@ -19,6 +20,7 @@
 ```powershell
 cd D:\nrts\agent
 docker start agent-harness-db
+docker compose up -d redis
 .\.venv\Scripts\python.exe scripts\dev.py
 ```
 

@@ -9,6 +9,11 @@
 | File | Role | Responsibilities |
 |---|---|---|
 | __init__.py | Module | Python 应用包入口 |
+| invocation.py | Security | 可信调用主体上下文、ORM 记忆隔离及发布记忆策略 |
+| publication_models.py | Schema | 发布应用、不可变版本、密钥、外部用户/会话、幂等、公开事件和审计 |
+| publication.py | Service | 发布快照、依赖漂移、凭据引用、参数授权交集与安全事件投影 |
+| publication_api.py | Controller | 发布授权回显/回滚/密钥、独立 API、访客 Cookie、公开会话/SSE 与归属校验的历史 MCP 卡片/兼容状态 |
+| publication_traffic.py | Security | Redis 原子限流和故障拒绝；配合 MySQL 持久并发准入 |
 | app_host.py | Controller | 独立 origin 的 MCP HTML 显示、声明域 CSP 与显式兼容票据；挂载本地 Cesium |
 | mcp_compat.js | Adapter | 可信地图兼容模式的本地 Cesium Worker、相机与视图重置 |
 | capabilities.py | Service | 工具清单、权限预设、路径检查与本地/MCP/HTTP 执行 |
@@ -21,7 +26,7 @@
 | memory_governance.py | Service | 显式/异步统一治理、分类/置信度校验、稳定槽更新、失败待审核及人工去重建议 |
 | main.py | Controller | 身份/资源 REST、审批恢复、部署审核、任务 SSE 及归属/终态校验的单条批量清理 |
 | providers.py | Adapter | OpenAI/Ollama JSON 输出、DeepSeek 结构化非思考模式与治理纠正重试；原生/兼容向量校验 |
-| runtime.py | Service | 快照驱动的串行状态机、预算、单次审批、JSON 决策纠正重试和持久事件 |
+| runtime.py | Service | 后台/发布共用串行状态机、调用主体、预算、单次审批或发布预授权、JSON 纠正和持久事件 |
 | scheduling.py | Service | 时区与一次/每日/每周/每月/Cron 时间计算 |
 | security.py | Security | Cookie 会话、CSRF、角色检查和密钥加密 |
 | worker.py | Worker | MySQL 租约、失效恢复、计划和推理部署调度 |

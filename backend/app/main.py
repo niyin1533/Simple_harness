@@ -1,4 +1,4 @@
-"""@input Authenticated REST commands. @output Agent platform API, durable SSE and owner-scoped terminal task cleanup.
+"""@input Console REST and independent publication router. @output Platform APIs, safe public errors, SSE and owner-scoped task cleanup.
 @position HTTP application. @doc-sync Update header and INDEX.md on changes.
 """
 
@@ -42,8 +42,12 @@ from .runtime import create_run, event, DEFAULT_LIMITS
 from .providers import complete, embedding
 from . import governance, extensions, deployments
 from .scheduling import next_time
+from .publication_api import router as publication_router
+from .publication_models import PublishedApp, AppSession, PublicEvent
+from fastapi.exceptions import RequestValidationError
 
 app = FastAPI(title="Agent Harness", version="0.1.0")
+app.include_router(publication_router)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.origins.split(","),
@@ -53,13 +57,62 @@ app.add_middleware(
 )
 
 
+def is_public(request):
+    return request is not None and request.url.path.startswith(("/service-api/v1/", "/public-api/v1/"))
+
+
+def public_error(request, status, code):
+    return JSONResponse(status_code=status, content={"code": code, "message": code,
+                        "request_id": getattr(request.state, "request_id", uid()), "run_id": None})
+
+
+@app.middleware("http")
+async def publication_boundary(request, call_next):
+    request.state.request_id = uid()
+    try:
+        response = await call_next(request)
+    except Exception:
+        if not is_public(request):
+            raise
+        import logging
+        logging.getLogger(__name__).exception("Public invocation failed %s", request.state.request_id)
+        return public_error(request, 500, "INTERNAL_ERROR")
+    if is_public(request):
+        for header in list(response.headers):
+            if header.lower().startswith("access-control-"):
+                del response.headers[header]
+        response.headers["X-Request-ID"] = request.state.request_id
+    return response
+
+
+@app.exception_handler(HTTPException)
+async def http_error(request, exc):
+    if is_public(request):
+        detail = str(exc.detail)
+        code = detail if detail.isascii() and detail.replace("_", "").isalnum() else "REQUEST_REJECTED"
+        return public_error(request, exc.status_code, code)
+    return JSONResponse(status_code=exc.status_code, content={"detail": exc.detail})
+
+
+@app.exception_handler(RequestValidationError)
+async def validation_error(request, exc):
+    if is_public(request):
+        return public_error(request, 422, "INVALID_REQUEST")
+    from fastapi.exception_handlers import request_validation_exception_handler
+    return await request_validation_exception_handler(request, exc)
+
+
 @app.exception_handler(ValueError)
 async def invalid(request, exc):
+    if is_public(request):
+        return public_error(request, 400, "INVALID_REQUEST")
     return JSONResponse(status_code=400, content={"detail": str(exc)})
 
 
 @app.exception_handler(extensions.McpTransportError)
 async def mcp_unavailable(request, exc):
+    if is_public(request):
+        return public_error(request, 502, "DEPENDENCY_UNAVAILABLE")
     return JSONResponse(status_code=502, content={"detail": str(exc)})
 
 
@@ -344,6 +397,8 @@ async def edit_resource(
 @app.delete("/api/v1/resources/{kind}/{id}")
 async def remove_resource(kind: str, id: str, user=Depends(administrator)):
     async with DB.begin() as db:
+        if kind == "agent" and await db.scalar(select(PublishedApp.id).where(PublishedApp.agent_id == id, PublishedApp.enabled == True)):
+            raise HTTPException(409, "请先停用发布，再删除智能体；历史版本和审计将保留")
         row = await db.get(Resource, id)
         if not row or row.kind != kind:
             raise HTTPException(404, "资源不存在")
@@ -389,12 +444,17 @@ def run_public(row):
     value.pop("state", None)
     value["agent_name"] = row.snapshot.get("agent_name")
     value["step"] = row.state.get("step", 0)
+    publication = row.snapshot.get("publication", {})
+    value["app_id"] = publication.get("app_id")
+    value["published_version"] = publication.get("number")
     return value
 
 
 async def owned(db, cls, id, user):
     row = await db.get(cls, id)
     if not row or row.user_id != user.id:
+        raise HTTPException(404, "记录不存在")
+    if cls is Session and await db.get(AppSession, id):
         raise HTTPException(404, "记录不存在")
     return row
 
@@ -460,7 +520,7 @@ async def delete_run_records(ids, user):
             for r in rows
         ):
             raise HTTPException(409, "请先取消未结束的任务，再删除记录")
-        for cls in (Approval, ToolCall, Event):
+        for cls in (Approval, ToolCall, Event, PublicEvent):
             await db.execute(delete(cls).where(cls.run_id.in_(ids)))
         schedules = (
             await db.scalars(
@@ -542,6 +602,8 @@ async def control(
     async with DB.begin() as db:
         await owned(db, Run, id, user)
         row = await db.get(Run, id, with_for_update=True)
+        if row.snapshot.get("publication") and action in {"pause", "resume"}:
+            raise HTTPException(409, "公开任务仅支持取消；重试请从原应用发起，以重新校验配额和授权")
         if action == "pause":
             if row.status not in {"QUEUED", "RUNNING", "WAITING_APPROVAL"}:
                 raise ValueError("当前状态不可暂停")
@@ -624,6 +686,7 @@ async def sessions(user=Depends(current_user)):
                 await db.scalars(
                     select(Session)
                     .where(Session.user_id == user.id)
+                    .where(~Session.id.in_(select(AppSession.session_id)))
                     .order_by(Session.created.desc())
                 )
             ).all()
@@ -1061,9 +1124,13 @@ async def mcp_resource(id: str, uri: str, user=Depends(current_user)):
 
 @app.post("/api/v1/mcp/{id}/view")
 async def mcp_view(id: str, body: dict, user=Depends(current_user)):
+    data = await mcp_resource(id, str(body.get("uri", "")), user)
+    return create_mcp_view(data, body)
+
+
+def create_mcp_view(data, body):
     import re
 
-    data = await mcp_resource(id, str(body.get("uri", "")), user)
     contents = data.get("contents", [])
     item = next(
         (c for c in contents if "html" in c.get("mimeType", "") and c.get("text")), None

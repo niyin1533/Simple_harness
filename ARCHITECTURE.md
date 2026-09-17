@@ -11,6 +11,7 @@ Python Worker 通过数据库租约领取任务；同一任务的模型决策与
 MCP 使用官方 Python SDK；ZIP 仅投影声明和 Skill，不执行安装钩子。
 MCP Apps 由独立 origin 显示；默认 opaque iframe，显式确认后可用本地 Cesium/Worker 兼容模式，不授予业务 API 操作权。
 不依赖 Fanwu 的 Java、RuoYi、训练、标注或原数据库，不包含画布与多代理。
+单智能体发布以不可变版本进入同一 Runtime；独立 Web/API、外部主体记忆隔离、Redis 限流和 MySQL 串行准入共同保护公开调用。
 
 ## Modules
 

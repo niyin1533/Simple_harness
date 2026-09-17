@@ -81,8 +81,17 @@ def validate_operations(value, rows, explicit):
 
 async def govern(db, user_id, agent_id, request, explicit=False):
     # Cross-worker serialization: model sees the latest committed memory state.
-    await db.get(User, user_id, with_for_update=True)
-    pref = await db.get(Preference, user_id)
+    from .invocation import principal
+    kind, subject = principal.get()
+    if kind == "APP_END_USER":
+        from .publication_models import EndUser
+        visitor = await db.get(EndUser, subject, with_for_update=True)
+        if not visitor or not visitor.active:
+            return {"operations": [], "reason": "visitor cleared"}
+    else:
+        await db.get(User, user_id, with_for_update=True)
+    from .invocation import preferences
+    pref = await preferences(db, user_id)
     model = (
         await db.get(Resource, (pref.config if pref else {}).get("governance_model_id"))
         if pref

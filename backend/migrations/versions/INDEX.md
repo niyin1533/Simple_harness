@@ -11,3 +11,4 @@
 | 0001_baseline.py | Migration | 冻结的初始表结构 |
 | 0002_large_text.py | Migration | 将长内容字段升级为 LONGTEXT |
 | 0003_memory_metadata.py | Migration | 为记忆添加可空治理元数据，保留全部旧数据 |
+| 0004_publication.py | Migration | 幂等新增发布表及记忆主体字段，回填平台主体；禁止破坏性回退 |

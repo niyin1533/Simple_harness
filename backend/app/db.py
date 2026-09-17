@@ -1,4 +1,4 @@
-"""@input SQLAlchemy and configuration. @output MySQL models, memory governance metadata and transaction sessions.
+"""@input SQLAlchemy and configuration. @output MySQL models, principal-aware memory and transaction sessions.
 @position Persistence. @doc-sync Update this header and folder INDEX.md when this file changes.
 """
 
@@ -161,6 +161,8 @@ class Memory(Base):
     __tablename__ = "memories"
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=uid)
     user_id: Mapped[str] = mapped_column(String(36), index=True)
+    subject_type: Mapped[str] = mapped_column(String(24), default="PLATFORM_USER", server_default="PLATFORM_USER", index=True)
+    subject_id: Mapped[str] = mapped_column(String(36), default="", server_default="", index=True)
     agent_id: Mapped[str | None] = mapped_column(String(128), nullable=True)
     content: Mapped[str] = mapped_column(Text)
     meta: Mapped[dict | None] = mapped_column(JSON, nullable=True, default=dict)

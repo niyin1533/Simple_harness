@@ -1,4 +1,4 @@
-"""@input Durable runs and capabilities. @output Serial model/tool state machine with approvals.
+"""@input Durable console/published runs and principal context. @output Shared serial loop with console approval or published preauthorization.
 @position Harness runtime. @doc-sync Update header and INDEX.md on changes.
 """
 
@@ -24,6 +24,7 @@ from .security import sanitize, digest
 from .providers import complete, parse_json
 from .capabilities import BUILTINS, policy, execute
 from .governance import history, retrieve, compact, tokens
+from . import invocation  # Install principal isolation for every runtime entry point.
 
 TERMINAL = {
     "SUCCEEDED",
@@ -48,6 +49,9 @@ async def event(db, run, name, data=None):
     run.seq += 1
     run.updated = now()
     db.add(Event(run_id=run.id, seq=run.seq, name=name, data=sanitize(data or {})))
+    if run.snapshot.get("publication"):
+        from .publication import project_event
+        await project_event(db, run, name, data or {})
 
 
 async def snapshot(db, target_id, target_type="agent"):
@@ -114,14 +118,19 @@ async def create_run(
     target_type="agent",
     trigger="INTERACTIVE",
     schedule_id=None,
+    published_snapshot=None,
 ):
     if not task.strip() or len(task) > 100000:
         raise ValueError("任务内容需为 1-100000 字符")
     user = await db.get(User, user_id)
     if not user or not user.active:
         raise ValueError("用户已停用")
-    snap = await snapshot(db, target_id, target_type)
+    snap = published_snapshot if published_snapshot is not None else await snapshot(db, target_id, target_type)
     if session_id:
+        from .publication_models import AppSession
+        binding = await db.get(AppSession, session_id)
+        if binding and published_snapshot is None:
+            raise ValueError("公开应用会话不能通过管理端运行入口使用")
         session = await db.get(Session, session_id, with_for_update=True)
         if not session or session.user_id != user_id or session.target_id != target_id:
             raise ValueError("会话不存在或目标不一致")
@@ -205,10 +214,22 @@ async def controlled(run_id, owner, awaitable):
 
 
 async def run_loop(run_id, owner):
+    async with DB() as db:
+        initial = await db.get(Run, run_id)
+        subject = (initial.snapshot.get("publication") or {}).get("end_user_id")
+        memory_policy = initial.snapshot.get("memory_policy")
+    with invocation.acting_as(subject, memory_policy):
+        await _run_loop(run_id, owner)
+
+
+async def _run_loop(run_id, owner):
     try:
         async with DB() as db:
             initial = await db.get(Run, run_id)
             snap = initial.snapshot
+            if snap.get("publication"):
+                from .publication import credentials
+                snap = await credentials(db, snap)
             definition = snap["definition"]
             limits = definition["limits"]
             initial_user = initial.user_id
@@ -310,6 +331,9 @@ async def run_loop(run_id, owner):
                 if run.status != "RUNNING" or run.lease_owner != owner:
                     raise StopRun()
                 snap = run.snapshot
+                if snap.get("publication"):
+                    from .publication import credentials
+                    snap = await credentials(db, snap)
                 definition = snap["definition"]
                 limits = definition["limits"]
                 state = copy.deepcopy(run.state)
@@ -333,6 +357,19 @@ async def run_loop(run_id, owner):
                     verdict = policy(
                         definition.get("permission_preset", "workspace-write"), cap
                     )
+                    if snap.get("publication"):
+                        from .publication import tool_allowed, audit
+                        if not tool_allowed(snap, cap, call.arguments):
+                            call.status = "FAILED"
+                            call.result = {"ok": False, "code": "PUBLICATION_PERMISSION_DENIED"}
+                            state.pop("pending", None)
+                            state["messages"].append({"role": "user", "content": "工具被发布授权策略拒绝，不可重试：" + cap["id"]})
+                            state["tools"] += 1
+                            run.state = state
+                            audit(db, snap["publication"]["app_id"], snap["publication"]["end_user_id"], "TOOL_DENIED", run_id=run.id, capability_id=cap["id"])
+                            await event(db, run, "TOOL_FAILED", {"tool_call_id": call.id, "code": "PUBLICATION_PERMISSION_DENIED"})
+                            continue
+                        verdict = "ALLOW"
                     if verdict == "DENY":
                         raise ValueError("权限策略拒绝该工具操作")
                     if verdict == "CONFIRM":

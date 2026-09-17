@@ -1,4 +1,17 @@
 services:
+  redis:
+    image: redis:7.4.9
+    container_name: agent-harness-redis
+    ports:
+      - "127.0.0.1:16379:6379"
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
   mysql:
     image: mysql:8.4
     ports:
@@ -16,4 +29,5 @@ services:
       timeout: 5s
       retries: 30
 volumes:
+  redis-data:
   mysql-data:
