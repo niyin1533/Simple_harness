@@ -8,7 +8,7 @@
 
 | File | Role | Responsibilities |
 |---|---|---|
-| Agents.tsx | UI | 智能体卡片和四步配置表单 |
+| Agents.tsx | UI | 稳定配色的机器人头像卡片和四步配置表单；保留原有操作布局 |
 | api.ts | API | 认证请求、CSRF 和公共类型 |
 | api.test.ts | Test | 认证请求和错误处理契约 |
 | App.tsx | UI | 登录、身份上下文、路由和导航 |
@@ -20,4 +20,4 @@
 | Governance.tsx | UI | 记忆治理弹窗换行与加载反馈、Embedding 配置、计划任务和用户管理 |
 | main.tsx | UI | React 根节点、主题和状态提供器 |
 | shell.css | Style | 固定侧栏与响应式工作台布局 |
-| style.css | Style | 高对比度浅色页面、卡片、对话和表单 |
+| style.css | Style | 高对比度浅色页面、渐变智能体卡片与悬停效果（支持减少动态效果）、对话和表单 |

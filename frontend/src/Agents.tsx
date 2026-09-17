@@ -1,5 +1,5 @@
-/** @input Shared resources. @output Four-step agent authoring. @position Agent management UI. @doc-sync Update INDEX.md on changes. */
-import { useState } from "react";
+/** @input Shared resources. @output Illustrated agent cards and four-step agent authoring. @position Agent management UI. @doc-sync Update INDEX.md on changes. */
+import { useState, type CSSProperties } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import {
@@ -22,13 +22,78 @@ import {
 } from "antd";
 import {
   PlusOutlined,
-  RobotOutlined,
   ArrowRightOutlined,
   EditOutlined,
 } from "@ant-design/icons";
 import { api, list, Resource } from "./api";
 import { useUser } from "./App";
 import { PublicationButton } from "./Publication";
+
+// Stable identity colors: reordering the list never changes an agent's avatar.
+function identitySeed(id: string) {
+  return Array.from(id).reduce(
+    (hash, char) => (hash * 31 + char.charCodeAt(0)) >>> 0,
+    0,
+  );
+}
+function AgentPortrait({ id }: { id: string }) {
+  const variant = identitySeed(id) % 3;
+  return (
+    <svg viewBox="0 0 64 64" fill="none" aria-hidden="true">
+      <path d="M32 10V17" stroke="currentColor" strokeWidth="3" />
+      <circle cx="32" cy="8" r="4" fill="currentColor" />
+      <rect
+        x="8"
+        y="28"
+        width="7"
+        height="15"
+        rx="3.5"
+        fill="currentColor"
+        opacity=".55"
+      />
+      <rect
+        x="49"
+        y="28"
+        width="7"
+        height="15"
+        rx="3.5"
+        fill="currentColor"
+        opacity=".55"
+      />
+      <rect
+        x="13"
+        y="17"
+        width="38"
+        height="36"
+        rx={variant === 1 ? 18 : 12}
+        fill="white"
+        stroke="currentColor"
+        strokeWidth="2"
+      />
+      <rect x="19" y="25" width="26" height="17" rx="7" fill="currentColor" />
+      {variant === 2 ? (
+        <path
+          d="m23 33 3-3 3 3m6 0 3-3 3 3"
+          stroke="white"
+          strokeWidth="2.5"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+      ) : (
+        <g fill="white">
+          <rect x="24" y="30" width="4" height={variant === 1 ? 7 : 5} rx="2" />
+          <rect x="36" y="30" width="4" height={variant === 1 ? 7 : 5} rx="2" />
+        </g>
+      )}
+      <path
+        d="M28 47h8"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+      />
+    </svg>
+  );
+}
 export function Agents() {
   const { data = [] } = useQuery({
     queryKey: ["agent"],
@@ -69,10 +134,20 @@ export function Agents() {
       ) : (
         <div className="agent-grid">
           {data.map((agent) => (
-            <Card key={agent.id} className="agent-card">
+            <Card
+              key={agent.id}
+              className={`agent-card${agent.enabled ? " is-enabled" : ""}`}
+              style={
+                {
+                  "--agent-hue": [222, 169, 267, 195, 330, 30][
+                    identitySeed(agent.id) % 6
+                  ],
+                } as CSSProperties
+              }
+            >
               <div className="agent-card-top">
                 <div className="agent-avatar">
-                  <RobotOutlined />
+                  <AgentPortrait id={agent.id} />
                 </div>
                 <Tag color={agent.enabled ? "green" : "default"}>
                   {agent.enabled ? "已启用" : "已停用"}

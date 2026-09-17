@@ -142,6 +142,65 @@ p {
 }
 .agent-card .ant-card-body {
   padding: 25px;
+  position: relative;
+  z-index: 1;
+}
+.agent-card {
+  --agent-hue: 222;
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+  background: linear-gradient(155deg, hsl(var(--agent-hue) 75% 96%), #fff 48%);
+  transition:
+    transform 0.25s ease,
+    box-shadow 0.25s ease,
+    border-color 0.25s ease;
+}
+.agent-card::before {
+  content: "";
+  position: absolute;
+  pointer-events: none;
+  width: 190px;
+  height: 190px;
+  right: -85px;
+  top: -90px;
+  border: 1px solid hsl(var(--agent-hue) 65% 87% / 0.65);
+  border-radius: 50%;
+  box-shadow:
+    0 0 0 22px hsl(var(--agent-hue) 70% 93% / 0.55),
+    0 0 0 45px hsl(var(--agent-hue) 70% 95% / 0.5);
+  transition: transform 0.4s ease;
+}
+.agent-card::after {
+  content: "";
+  position: absolute;
+  inset: 0 24px auto;
+  height: 3px;
+  border-radius: 0 0 6px 6px;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    hsl(var(--agent-hue) 65% 58% / 0.7),
+    transparent
+  );
+  pointer-events: none;
+}
+.agent-card:focus-within {
+  border-color: hsl(var(--agent-hue) 60% 68%);
+  box-shadow: 0 8px 28px hsl(var(--agent-hue) 40% 35% / 0.1);
+}
+@media (hover: hover) {
+  .agent-card:hover {
+    transform: translateY(-4px);
+    border-color: hsl(var(--agent-hue) 60% 73%);
+    box-shadow: 0 14px 34px hsl(var(--agent-hue) 40% 35% / 0.13);
+  }
+  .agent-card:hover::before {
+    transform: scale(1.15);
+  }
+  .agent-card:hover .agent-avatar svg {
+    transform: translateY(-2px) rotate(-5deg);
+  }
 }
 .agent-card-top {
   display: flex;
@@ -153,11 +212,47 @@ p {
   width: 48px;
   height: 48px;
   border-radius: 14px;
-  background: #edf2ff;
-  color: #315fc3;
+  position: relative;
+  background: linear-gradient(135deg, #fff, hsl(var(--agent-hue) 80% 90%));
+  color: hsl(var(--agent-hue) 56% 38%);
+  border: 1px solid hsl(var(--agent-hue) 65% 85%);
+  box-shadow:
+    0 5px 14px hsl(var(--agent-hue) 50% 40% / 0.12),
+    inset 0 1px 0 #fff;
   font-size: 26px;
   display: grid;
   place-items: center;
+}
+.agent-avatar svg {
+  width: 42px;
+  height: 42px;
+  transition: transform 0.25s ease;
+}
+.agent-card.is-enabled .agent-avatar::after {
+  content: "";
+  position: absolute;
+  bottom: -3px;
+  right: -3px;
+  width: 10px;
+  height: 10px;
+  background: #14845b;
+  border: 2px solid white;
+  border-radius: 50%;
+}
+.agent-card h2 {
+  overflow-wrap: anywhere;
+}
+@media (prefers-reduced-motion: reduce) {
+  .agent-card,
+  .agent-card::before,
+  .agent-avatar svg {
+    transition: none;
+  }
+  .agent-card:hover,
+  .agent-card:hover::before,
+  .agent-card:hover .agent-avatar svg {
+    transform: none;
+  }
 }
 .agent-card p {
   min-height: 52px;
@@ -289,7 +384,10 @@ a {
   color: #667085;
   opacity: 0;
   pointer-events: none;
-  transition: opacity 120ms ease, color 120ms ease, background-color 120ms ease;
+  transition:
+    opacity 120ms ease,
+    color 120ms ease,
+    background-color 120ms ease;
 }
 .session-panel .ant-list-item:hover .session-delete,
 .session-panel .ant-list-item:focus-within .session-delete {
@@ -306,16 +404,41 @@ a {
   outline-offset: 2px;
 }
 @media (hover: none), (pointer: coarse) {
-  .session-panel .session-delete { opacity: 1; pointer-events: auto; }
+  .session-panel .session-delete {
+    opacity: 1;
+    pointer-events: auto;
+  }
 }
 @media (prefers-reduced-motion: reduce) {
-  .session-panel .session-delete { transition: none; }
+  .session-panel .session-delete {
+    transition: none;
+  }
 }
-.memory-review-modal .ant-modal-confirm-paragraph { min-width: 0; max-width: 100%; }
-.memory-review-modal .ant-modal-confirm-content { min-width: 0; max-width: 100%; }
-.memory-review-list { display: grid; gap: 12px; width: 100%; min-width: 0; max-height: 60vh; overflow-y: auto; }
-.memory-review-list .ant-card { min-width: 0; width: 100%; }
-.memory-review-list .ant-card-body { white-space: normal; overflow-wrap: anywhere; word-break: break-word; }
+.memory-review-modal .ant-modal-confirm-paragraph {
+  min-width: 0;
+  max-width: 100%;
+}
+.memory-review-modal .ant-modal-confirm-content {
+  min-width: 0;
+  max-width: 100%;
+}
+.memory-review-list {
+  display: grid;
+  gap: 12px;
+  width: 100%;
+  min-width: 0;
+  max-height: 60vh;
+  overflow-y: auto;
+}
+.memory-review-list .ant-card {
+  min-width: 0;
+  width: 100%;
+}
+.memory-review-list .ant-card-body {
+  white-space: normal;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
 .session-title small {
   display: block;
   font-size: 10px;
