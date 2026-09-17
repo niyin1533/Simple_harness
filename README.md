@@ -1,8 +1,6 @@
-# Agent Harness
+# Simple Harness
 
 可自托管的智能体工作台，使用 **React + TypeScript、Python / FastAPI、MySQL** 构建。连接模型、组合工具、调试任务，再将单个智能体发布为 Web 应用或 Service API。
-
-项目专注于智能体运行与工具化，不包含标注、训练或多智能体工作流。来源于 Fanwu 智能体模块的独立重构，运行时无需原项目。
 
 ## 功能
 
